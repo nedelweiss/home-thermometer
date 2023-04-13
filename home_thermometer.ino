@@ -1,28 +1,35 @@
-#define RT0 10000
-#define B 3977
-#define VCC 5
-#define R 10000
-
-float T0;
+#define THERMISTOR_PIN A0
+#define RESISTANCE_VALUE_MAX 1023.0
+#define KILO_UNIT 1000.0
+#define VCC_PIN_VALUE 5.0
+#define ABSOLUTE_ZERO_IN_KELVIN 273.15
+#define A_COEFFICIENT 0.001129148
+#define B_COEFFICIENT 0.000234125
+#define C_COEFFICIENT 0.0000000876741
 
 void setup() {
     Serial.begin(9600);
-    T0 = 25 + 273.15; // from Celsius to Kelvin conversion
 }
 
 void loop() {
-    float VRT = analogRead(A0); // acquisition analog value of VRT
-    VRT  = (5.00 / 1023.00) * VRT; // conversion to voltage
-    
-    float VR = VCC - VRT;
-    float RT = VRT / (VR / R); // resistance of RT
-    float ln = log(RT / RT0);
+  int vccResistance = analogRead(THERMISTOR_PIN);
 
-    float temperature = (1 / ((ln / B) + (1 / T0)));
+  float voltage = vccResistance * (VCC_PIN_VALUE / RESISTANCE_VALUE_MAX);
 
-    Serial.print("Temperature: ");
-    Serial.print(temperature - 273.15);
-    Serial.print(" C\n");
+  float thermistorResistanceInKiloOhm = (VCC_PIN_VALUE * (10.0 / voltage)) - 10.0;
+  float thermistorResistanceInOhm = thermistorResistanceInKiloOhm  * KILO_UNIT;
 
-    delay(500);
+  float thermistorResistanceLog = log(thermistorResistanceInOhm);
+
+  float divider = A_COEFFICIENT 
+    + B_COEFFICIENT * thermistorResistanceLog 
+    + C_COEFFICIENT * thermistorResistanceLog*thermistorResistanceLog*thermistorResistanceLog;
+
+  float temperatureInCelsius = (1.0 / divider) - ABSOLUTE_ZERO_IN_KELVIN;
+
+  Serial.print("Temperature: "); 
+  Serial.print(temperatureInCelsius);
+  Serial.println(" C"); 
+
+  delay(1000);
 }
